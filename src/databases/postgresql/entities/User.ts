@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, Index } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, Index, OneToMany } from "typeorm";
 import bcrypt from "bcrypt";
+import Order from "./Order";
 
 // Entidad de usuario
 @Entity()
@@ -16,6 +17,9 @@ class User {
 
   @Column({ nullable: true, type: "text" })
   refreshToken: string;
+
+  @OneToMany(() => Order, (order) => order.user)
+  orders: Order[];
 
   // Método para cifrar la contraseña antes de insertarla en la base de datos
   @BeforeInsert()
