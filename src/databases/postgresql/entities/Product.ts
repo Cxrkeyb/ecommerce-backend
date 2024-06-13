@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, OneToMany } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  OneToMany,
+  UpdateDateColumn
+} from "typeorm";
 import OrderProduct from "./OrderProduct";
 
 // Entidad de producto
@@ -26,6 +33,9 @@ class Product {
   // Relation with order products
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.product)
   orderProducts: OrderProduct[];
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
 
 export default Product;
