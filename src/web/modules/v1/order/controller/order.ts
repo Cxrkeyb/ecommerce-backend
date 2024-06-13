@@ -10,16 +10,18 @@ import { Request, Response } from "express";
  */
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { userId, products } = req.body;
-
-    console.log("userId", userId);
+    const { products } = req.body;
 
     // Validar los datos de entrada
-    if (!userId || !products || products.length === 0) {
+    if (!products || products.length === 0) {
       return res.status(400).json({ message: "Faltan datos obligatorios" });
     }
 
-    const user = await UserRepository.findOne({ where: { id: userId } });
+    const users = await UserRepository.find({
+      take: 1
+    });
+
+    const user = users[0];
 
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
@@ -45,20 +47,22 @@ export const createOrder = async (req: Request, res: Response) => {
         order: {
           id: orderId
         },
-        product
+        product,
+        quantity: products.find((p: any) => p.id === product.id).quantity
       });
     });
 
     // Reduce el stock de los productos
     existingProducts.forEach(async (product) => {
       await ProductRepository.update(product.id, {
-        stock: product.stock - 1
+        stock: product.stock - products.find((p: any) => p.id === product.id).quantity
       });
     });
 
     res.status(201).json({
       message: "Orden creada exitosamente",
       order: {
+        id: orderId,
         user,
         products: existingProducts
       }
@@ -78,13 +82,31 @@ export const createOrder = async (req: Request, res: Response) => {
 export const getOrders = async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const orders = await OrderRepository.find({
+    const [orders, totalOrders] = await OrderRepository.findAndCount({
       take: Number(limit),
       skip: (Number(page) - 1) * Number(limit),
       relations: ["orderProducts", "orderProducts.product"]
     });
 
-    res.status(200).json(orders);
+    const totalPages = Math.ceil(totalOrders / Number(limit));
+
+    res.status(200).json({
+      totalPages,
+      data: orders.map((order) => ({
+        id: order.id,
+        products: order.orderProducts.map((orderProduct) => ({
+          id: orderProduct.product.id,
+          name: orderProduct.product.name,
+          price: orderProduct.product.price,
+          quantity: orderProduct.quantity
+        })),
+        total: order.orderProducts.reduce(
+          (acc, orderProduct) => acc + orderProduct.product.price * orderProduct.quantity,
+          0
+        ),
+        status: order.status
+      }))
+    });
   } catch (error) {
     console.log("Error al obtener las órdenes:", error);
     res.status(500).json({ message: "Error interno del servidor" });
@@ -100,7 +122,10 @@ export const getOrders = async (req: Request, res: Response) => {
 export const getOrder = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const order = await OrderRepository.findOne({ where: { id } });
+    const order = await OrderRepository.findOne({
+      where: { id },
+      relations: ["orderProducts", "orderProducts.product"]
+    });
 
     if (!order) {
       return res.status(400).json({ message: "La orden no existe" });
@@ -128,6 +153,8 @@ export const deleteOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "La orden no existe" });
     }
 
+    await OrderProductRepository.delete({ order: { id } });
+
     await OrderRepository.delete({ id });
     res.status(200).json(order);
   } catch (error) {
@@ -139,7 +166,7 @@ export const deleteOrder = async (req: Request, res: Response) => {
 export const updateOrder = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId, products } = req.body;
+    const { status } = req.body;
 
     const order = await OrderRepository.findOne({ where: { id } });
 
@@ -147,31 +174,23 @@ export const updateOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "La orden no existe" });
     }
 
-    if (userId) {
-      const user = await UserRepository.findOne({ where: { id: userId } });
-
-      if (!user) {
-        return res.status(404).json({ message: "Usuario no encontrado" });
-      }
-
-      order.user = user;
+    if (status !== "pending" && status !== "completed" && status !== "cancelled") {
+      return res.status(400).json({ message: "Estado de la orden inválido" });
     }
 
-    if (products) {
-      const productIds = products.map((product: any) => product.id);
+    // Actualizar solo el estado de la orden
+    await OrderRepository.update(id, { status });
 
-      const existingProducts = await ProductRepository.findByIds(productIds);
-
-      if (existingProducts.length !== productIds.length) {
-        return res.status(400).json({ message: "Uno o más productos no existen" });
+    res.status(200).json({
+      message: "Estado de la orden actualizado exitosamente",
+      data: {
+        id,
+        user: order.user,
+        status
       }
-
-      // order.orderProducts = existingProducts;
-    }
-
-    await OrderRepository.save(order);
+    });
   } catch (error) {
-    console.log("Error al actualizar la orden:", error);
+    console.log("Error al actualizar el estado de la orden:", error);
     res.status(500).json({ message: "Error interno del servidor" });
   }
 };
