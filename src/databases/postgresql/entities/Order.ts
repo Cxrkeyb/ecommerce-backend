@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Index, ManyToOne, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Index, ManyToOne, OneToMany, Column } from "typeorm";
 import User from "./User";
 import OrderProduct from "./OrderProduct";
 
@@ -7,6 +7,12 @@ class Order {
   @PrimaryGeneratedColumn("uuid")
   @Index()
   id: string;
+
+  @Column({
+    enum: ["pending", "completed", "cancelled"],
+    default: "pending"
+  })
+  status: string;
 
   @ManyToOne(() => User, (user) => user.orders)
   user: User;
