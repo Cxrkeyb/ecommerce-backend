@@ -28,3 +28,7 @@ Se ejecuta en un entorno Docker y utiliza TypeORM para la gestión de la base de
 - `npm run run-migrations`: Ejecuta las migraciones de la base de datos.
 - `npm run gen-migration`: Genera una nueva migración.
 - `npm run revert-migrations`: Revierte las migraciones de la base de datos.
+
+
+## Important
+- You have to create an user with swagger to create a order
