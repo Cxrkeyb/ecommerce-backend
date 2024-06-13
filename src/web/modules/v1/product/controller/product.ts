@@ -23,7 +23,7 @@ export const createProduct = async (req: Request, res: Response) => {
     }
 
     // Crear el producto
-    const product = await ProductRepository.insert({
+    await ProductRepository.insert({
       name,
       description,
       price,
@@ -106,7 +106,10 @@ export const getProducts = async (req: Request, res: Response) => {
     const { page = 1, limit = 10 } = req.query;
     const [products, totalProducts] = await ProductRepository.findAndCount({
       take: Number(limit),
-      skip: (Number(page) - 1) * Number(limit)
+      skip: (Number(page) - 1) * Number(limit),
+      order: {
+        updatedAt: "DESC"
+      }
     });
 
     const totalPages = Math.ceil(totalProducts / Number(limit));
