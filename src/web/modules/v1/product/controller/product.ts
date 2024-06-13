@@ -104,12 +104,17 @@ export const deleteProduct = async (req: Request, res: Response) => {
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const products = await ProductRepository.find({
+    const [products, totalProducts] = await ProductRepository.findAndCount({
       take: Number(limit),
       skip: (Number(page) - 1) * Number(limit)
     });
 
-    res.status(200).json(products);
+    const totalPages = Math.ceil(totalProducts / Number(limit));
+
+    res.status(200).json({
+      totalPages,
+      data: products
+    });
   } catch (error) {
     console.log("Error al obtener los productos:", error);
     res.status(500).json({ message: "Error interno del servidor" });
