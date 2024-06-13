@@ -32,3 +32,12 @@ Se ejecuta en un entorno Docker y utiliza TypeORM para la gestión de la base de
 
 ## Important
 - You have to create an user with swagger to create a order
+
+
+## Screenshots
+
+### Backend structure
+![image](docs/backend_structure.png)
+
+### Database schema
+![image](docs/database_schema.png)
